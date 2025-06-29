@@ -9,6 +9,7 @@ def simulate(df,
              include_compost_heat=False,
              compost_heat_rate=5,
              solar_heating_panel=False,
+             solar_panel_area=0.15,  # NEW PARAMETER: area in m²
              fan_active=False,
              include_ice_packs=False,
              auto_venting_lid=False,
@@ -16,7 +17,7 @@ def simulate(df,
              pcm_mass_kg=0,
              pcm_latent_heat=334000,
              shade_on_hot_days=False):
-    
+
     import pandas as pd
 
     # Constants
@@ -26,7 +27,7 @@ def simulate(df,
     absorptivity = 0.9 if color == 'black' else 0.3
 
     dt = 3600  # seconds per time step (1 hour)
-    surface_area = 0.5  # m²
+    surface_area = 0.5  # m² (bin surface area)
 
     # Initial temperature
     T = df[soil_column].iloc[0] if use_soil_as_ambient else df['temp'].iloc[0]
@@ -61,11 +62,13 @@ def simulate(df,
         solar_energy = absorptivity * sun * surface_area * dt * solar_fraction
         compost_energy = compost_heat_rate * dt if include_compost_heat else 0
 
-        panel_area = 0.3 * 0.5
+        # Solar heating panel contribution
         panel_efficiency = 0.6
-        solar_panel_power = panel_area * sun * panel_efficiency
-        solar_panel_energy = solar_panel_power * dt if solar_heating_panel else 0
+        solar_panel_power = solar_panel_area * sun * panel_efficiency
+        panel_solar_fraction = 0.2 if use_soil_as_ambient else 1.0
+        solar_panel_energy = solar_panel_power * dt * panel_solar_fraction if solar_heating_panel else 0
 
+        # Heat losses
         conv_coeff = 1.5 if (use_soil_as_ambient and insulation) else \
                      3.0 if use_soil_as_ambient else \
                      2.0 if insulation else 5.0
@@ -76,6 +79,7 @@ def simulate(df,
         ambient_K = ambient + 273.15
         rad_energy_loss = rad_emissivity * sigma * surface_area * (T_K**4 - ambient_K**4) * dt
 
+        # Venting
         vent_energy_loss = 0
         if smart_venting_lid:
             if hour in range(0, 7) or hour in range(19, 24):
@@ -85,14 +89,17 @@ def simulate(df,
             vent_coeff = 20 if not use_soil_as_ambient else 10
             vent_energy_loss = vent_coeff * surface_area * (T - ambient) * dt
 
+        # Fan cooling
         fan_energy_loss = 0
         if fan_active and T > 30:
             fan_energy_loss = 40 * surface_area * (T - ambient) * dt
 
+        # Ice packs
         ice_pack_energy_loss = 0
         if include_ice_packs and 12 <= hour <= 17 and T > 30:
             ice_pack_energy_loss = 200 * surface_area * (T - ambient) * dt
 
+        # PCM buffering
         pcm_energy_change = 0
         if pcm_mass_kg > 0:
             if T < pcm_temp and pcm_latent_used < pcm_mass_kg * pcm_latent_heat:
@@ -106,6 +113,7 @@ def simulate(df,
                 pcm_latent_used -= energy_to_release
             T += pcm_energy_change / heat_capacity_bin
 
+        # Net energy
         net_energy = solar_energy + compost_energy + solar_panel_energy \
                      - conv_energy_loss - rad_energy_loss \
                      - vent_energy_loss - fan_energy_loss - ice_pack_energy_loss
