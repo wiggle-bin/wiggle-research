@@ -1,4 +1,3 @@
 .venv
 .DS_Store
-data_stream-oper_stepType-accum.nc
-data_stream-oper_stepType-instant.nc
+emwcf
