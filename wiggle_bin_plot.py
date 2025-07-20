@@ -108,9 +108,37 @@ def plot_hours_in_temperature_zones(series_dict, title="Time Spent in Worm Tempe
     )
 
     fig.update_layout(
-        xaxis_title='Soil Temperature',
+        xaxis_title='Soil',
         yaxis_title='Number of Hours',
         xaxis=dict(tickangle=0),
     )
 
     return fig
+
+def count_hours_by_zone(series):
+    """Counts number of hours a series spends in each zone."""
+    categories = pd.cut(series, bins=zone_bins, labels=zone_labels, right=False)
+    return categories.value_counts().sort_index()
+
+
+def difference_in_zone_hours(model_a_series, model_b_series, label_a="Model A", label_b="Model B"):
+    """
+    Calculate absolute difference in hours and days per zone between two models.
+    
+    Returns:
+        pd.DataFrame with columns: Zone, Model A, Model B, Hour Difference, Day Difference
+    """
+    a_counts = count_hours_by_zone(model_a_series)
+    b_counts = count_hours_by_zone(model_b_series)
+
+    hour_diff = (a_counts - b_counts).abs()
+
+    df = pd.DataFrame({
+        'Zone': zone_labels,
+        label_a: a_counts.values,
+        label_b: b_counts.values,
+        'Hour Difference': hour_diff.values,
+        'Day Difference': (hour_diff / 24).round(2)
+    })
+
+    return df
