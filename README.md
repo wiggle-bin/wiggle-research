@@ -1,5 +1,13 @@
 ## Worm environment info
 
+| Temperature (°C) | Worm Activity/Health                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| **< 10**         | Dangerous cold (can die)                                                                   |
+| **10–15**        | Low activity                                                                               |
+| **15–25**        | Optimal range (peak composting productivity)                                               |
+| **25–30**        | **Still productive**, but may start to slow or stress slightly — not necessarily "low" yet |
+| **> 30**         | Increasing risk of stress/death, especially >35°C                                          |
+
 | Temperature | Impact                                                                                    |
 | ----------- | ----------------------------------------------------------------------------------------- |
 | **> 35°C**  | **Lethal zone**: Risk of death due to overheating, protein denaturation, oxygen shortage. |
