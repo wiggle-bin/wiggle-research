@@ -47,7 +47,7 @@ def plot_worm_temperature_zones(df, cols_to_plot, title="Worm Temperature Zones"
             y=df[col],
             mode='lines',
             name=props.get('name', col),
-            line=dict(color=props.get('color', 'black'), width=2),
+            # line=dict(color=props.get('color', 'black'), width=2),
             opacity=0.7
         ))
 
@@ -104,15 +104,11 @@ def plot_hours_in_temperature_zones(series_dict, title="Time Spent in Worm Tempe
         color='Model',
         barmode='group',
         title=title,
-        category_orders={'Zone': zone_labels},
-        color_discrete_map={
-            'White Box Model': 'orange',
-            'Black Box Model': 'purple'
-        }
+        category_orders={'Zone': zone_labels}
     )
 
     fig.update_layout(
-        xaxis_title='Worm Productivity Zone',
+        xaxis_title='Soil Temperature',
         yaxis_title='Number of Hours',
         xaxis=dict(tickangle=0),
     )
