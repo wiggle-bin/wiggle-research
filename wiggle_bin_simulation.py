@@ -190,3 +190,22 @@ def add_bin_models_air_soil(df, base_models):
         df[soil_col] = simulate(df, **soil_params)
 
     return df
+
+def combine_series_by_label(dfs, labels, col_suffix):
+    """
+    Combine series from multiple DataFrames by label into a single concatenated series.
+
+    Args:
+        dfs (list of pd.DataFrame): List of dataframes (e.g. [year_2019, year_2021])
+        labels (list of str): Labels for each series (e.g. ['White Box Model', 'Black Box Model', ...])
+        col_suffix (list of str): Corresponding column suffixes to extract from each DataFrame
+                                 (e.g. ['bin_white_model_soil', 'bin_black_model_soil', 'soil_0_7'])
+
+    Returns:
+        dict: {label: concatenated pd.Series}
+    """
+    combined = {}
+    for label, col in zip(labels, col_suffix):
+        series_list = [df[col] for df in dfs]
+        combined[label] = pd.concat(series_list).sort_index()
+    return combined
