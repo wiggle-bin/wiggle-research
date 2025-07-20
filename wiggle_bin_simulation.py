@@ -1,3 +1,6 @@
+import xarray as xr
+import pandas as pd
+
 def simulate(df, 
              color='black', 
              insulation=False, 
@@ -17,8 +20,6 @@ def simulate(df,
              pcm_mass_kg=0,
              pcm_latent_heat=334000,
              shade_on_hot_days=False):
-
-    import pandas as pd
 
     # Constants
     heat_capacity_bin = 1e5 if insulation else 5e4
@@ -122,3 +123,70 @@ def simulate(df,
         temperatures.append(T)
 
     return temperatures
+
+
+def load_and_process_emwcf_data(temp_path, rad_path):
+    """
+    Load and process EMWCF weather data (temperature + radiation).
+
+    Args:
+        temp_path (str): Path to NetCDF file with temperature data.
+        rad_path (str): Path to NetCDF file with radiation data.
+
+    Returns:
+        pd.DataFrame: Combined and processed DataFrame with:
+            - 'temp' in °C
+            - 'soil_0_7' in °C
+            - 'sun' in W/m²
+            - 'month' column (int)
+            - Datetime index named 'time'
+    """
+    # Load datasets
+    temp_ds = xr.open_dataset(temp_path)
+    rad_ds = xr.open_dataset(rad_path)
+
+    # Merge and convert to DataFrame
+    combined = xr.merge([temp_ds, rad_ds])
+    df = combined.to_dataframe().reset_index()
+
+    # Convert units
+    df['temp'] = df['t2m'] - 273.15           # K → °C
+    df['soil_0_7'] = df['stl1'] - 273.15      # K → °C
+    df['sun'] = df['ssrd'] / 3600             # J/m² per 2h → W/m²
+
+    # Rename and process datetime
+    df = df.rename(columns={"valid_time": "time"})
+    df['month'] = pd.to_datetime(df['time']).dt.month
+    df = df.set_index('time')
+    df.index = pd.to_datetime(df.index)
+
+    return df
+
+def add_bin_models_air_soil(df, base_models):
+    """
+    For each base model, create two simulation columns:
+    - air variant (as is)
+    - soil variant (with use_soil_as_ambient=True added)
+
+    Columns are named like: "{model_name}_air" and "{model_name}_soil".
+
+    Args:
+        df (pd.DataFrame): Input DataFrame
+        base_models (dict): keys are model names (e.g. 'model_A'),
+                            values are param dicts for simulate()
+
+    Returns:
+        pd.DataFrame: df with new simulation columns added.
+    """
+    for model_name, params in base_models.items():
+        # Air variant
+        air_col = f"{model_name}_air"
+        df[air_col] = simulate(df, **params)
+
+        # Soil variant: add 'use_soil_as_ambient' param without modifying original dict
+        soil_params = params.copy()
+        soil_params['use_soil_as_ambient'] = True
+        soil_col = f"{model_name}_soil"
+        df[soil_col] = simulate(df, **soil_params)
+
+    return df
