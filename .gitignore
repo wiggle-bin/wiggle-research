@@ -2,3 +2,4 @@
 .DS_Store
 emwcf
 __pycache__
+.cache.sqlite
